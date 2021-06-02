@@ -7,10 +7,10 @@ use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Psr7\Uri;
 use GuzzleHttp\Utils;
 use InvalidArgumentException;
+use Prezly\KubernetesClient\Exceptions\KubernetesClientException;
 use Prezly\KubernetesClient\Exceptions\RequestException;
 use Prezly\KubernetesClient\Exceptions\ResponseException;
 use Psr\Http\Message\StreamInterface;
-use Psr\Http\Message\UriInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
@@ -116,22 +116,23 @@ final class KubernetesClient
             throw new RequestException("Failed requesting {$method} on `{$uri}`.", 0, $exception);
         }
 
-        try {
-            return Utils::jsonDecode($response->getBody()->getContents(), true);
-        } catch (InvalidArgumentException $exception) {
-            throw new ResponseException("Failed decoding response JSON: {$exception->getMessage()}", 0, $exception);
-        }
+        return $this->decodeResponseJson($response->getBody()->getContents());
     }
 
-    public function watch(string $endpoint, callable $watcher, callable $initialize = null): void
+    /**
+     * @param string $uri
+     * @param callable $watcher
+     * @param callable|null $initialize
+     */
+    public function watch(string $uri, callable $watcher, callable $initialize = null): void
     {
-        $endpoint = new Uri($endpoint);
+        $uri = new Uri($uri);
 
         do {
             try {
-                $this->doWatch($endpoint, $watcher, $initialize);
-            } catch (GuzzleException $exception) {
-                $this->logger->warning("Caught exception: {$exception->getMessage()} ({$exception->getCode()})", [
+                $this->doWatch($uri, $watcher, $initialize);
+            } catch (KubernetesClientException $exception) {
+                $this->logger->warning("Caught exception: {$exception->getMessage()}", [
                     'exception' => [
                         'class'   => get_class($exception),
                         'message' => $exception->getMessage(),
@@ -144,49 +145,65 @@ final class KubernetesClient
         } while (true);
     }
 
-    private function doWatch(UriInterface $endpoint, callable $watcher, callable $initializer = null): void
+    /**
+     * @param string $uri
+     * @param callable $watcher
+     * @param callable|null $initializer
+     * @throws RequestException
+     * @throws ResponseException
+     */
+    private function doWatch(string $uri, callable $watcher, callable $initializer = null): void
     {
-        $resourceVersion = $initializer ? $this->initializeWatch($endpoint, $initializer) : null;
+        $resourceVersion = $initializer ? $this->initializeWatch($uri, $initializer) : null;
 
         $this->logger->info('Starting watcher');
 
-        $response = $this->client->get(
-            Uri::withQueryValues($endpoint, array_filter([
-                'watch'           => 1,
-                /**
-                 * @see https://kubernetes.io/docs/reference/using-api/api-concepts/#the-resourceversion-parameter
-                 */
-                'resourceVersion' => $resourceVersion,
-            ])),
-            [
+        $uri = $this->withQueryValues($uri, array_filter([
+            'watch'           => 1,
+            /**
+             * @see https://kubernetes.io/docs/reference/using-api/api-concepts/#the-resourceversion-parameter
+             */
+            'resourceVersion' => $resourceVersion,
+        ]));
+
+        try {
+            $response = $this->client->get($uri, [
                 'stream'       => true,
                 'read_timeout' => PHP_INT_MAX,
-            ],
-        );
+            ]);
+        } catch (GuzzleException $exception) {
+            throw new RequestException("Failed requesting GET on `{$uri}`.", 0, $exception);
+        }
 
-        foreach ($this->decodeNDJsonStream($response->getBody()) as $record) {
+        foreach ($this->decodeJsonStream($response->getBody()) as $record) {
             $watcher($record);
         }
     }
 
-    private function initializeWatch(UriInterface $endpoint, callable $initializer): string
+    /**
+     * @param string $uri
+     * @param callable $initializer
+     * @return string
+     * @throws RequestException
+     * @throws ResponseException
+     */
+    private function initializeWatch(string $uri, callable $initializer): string
     {
-        $this->logger->info('Initializing watch base resourceVersion');
+        $this->logger->info("Initializing watch base resourceVersion for `{$uri}.");
 
-        $response = $this->client->get($endpoint);
+        $response = $this->get($uri);
 
-        $data = Utils::jsonDecode($response->getBody()->getContents(), true);
+        $initializer($response);
 
-        $initializer($data);
-
-        return $data['metadata']['resourceVersion'];
+        return $response['metadata']['resourceVersion'];
     }
 
     /**
      * @param StreamInterface $stream
      * @return iterable
+     * @throws ResponseException
      */
-    private function decodeNDJsonStream(StreamInterface $stream): iterable
+    private function decodeJsonStream(StreamInterface $stream): iterable
     {
         $buffer = '';
 
@@ -195,13 +212,13 @@ final class KubernetesClient
             $buffer .= $byte;
 
             if ($byte === "\n") {
-                $decoded = json_decode($buffer, $assoc = true);
-
-                if (json_last_error() === JSON_ERROR_NONE) {
-                    yield $decoded;
-                    $buffer = '';
-                }
+                yield from $this->decodeResponseJson($buffer);
+                $buffer = '';
             }
+        }
+
+        if ($buffer) {
+            yield $buffer;
         }
     }
 
@@ -212,5 +229,19 @@ final class KubernetesClient
         }
 
         return (string) Uri::withQueryValues(new Uri($uri), $query);
+    }
+
+    /**
+     * @param string $contents
+     * @return array|bool|float|int|object|string|null
+     * @throws ResponseException
+     */
+    private function decodeResponseJson(string $contents)
+    {
+        try {
+            return Utils::jsonDecode($contents, true);
+        } catch (InvalidArgumentException $exception) {
+            throw new ResponseException("Failed decoding response JSON: {$exception->getMessage()}", 0, $exception);
+        }
     }
 }
