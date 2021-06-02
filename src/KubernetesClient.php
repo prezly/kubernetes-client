@@ -108,7 +108,8 @@ final class KubernetesClient
         $method = strtoupper($method);
 
         try {
-            $response = $this->client->get(
+            $response = $this->client->request(
+                $method,
                 $uri,
                 $body !== null ? ['json' => (object) $body] : [],
             );
