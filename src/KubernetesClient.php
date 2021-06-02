@@ -6,6 +6,9 @@ use GuzzleHttp\Client as HttpClient;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Psr7\Uri;
 use GuzzleHttp\Utils;
+use InvalidArgumentException;
+use Prezly\KubernetesClient\Exceptions\RequestException;
+use Prezly\KubernetesClient\Exceptions\ResponseException;
 use Psr\Http\Message\StreamInterface;
 use Psr\Http\Message\UriInterface;
 use Psr\Log\LoggerInterface;
@@ -23,13 +26,101 @@ final class KubernetesClient
         $this->logger = $logger ?: new NullLogger();
     }
 
-    public function get(string $uri, array $params = []): array
+    /**
+     * @param string $uri
+     * @param array $query
+     * @return array
+     *
+     * @throws RequestException
+     * @throws ResponseException
+     */
+    public function get(string $uri, array $query = []): array
     {
-        $response = $this->client->get($uri, [
-            'query' => $params,
-        ]);
+        return $this->request('GET', $this->withQueryValues($uri, $query));
+    }
 
-        return Utils::jsonDecode($response->getBody()->getContents(), $assoc = true);
+    /**
+     * @param string $uri
+     * @param array $body
+     * @param array $query
+     * @return array
+     *
+     * @throws RequestException
+     * @throws ResponseException
+     */
+    public function post(string $uri, array $body = [], array $query = []): array
+    {
+        return $this->request('POST', $this->withQueryValues($uri, $query), $body);
+    }
+
+    /**
+     * @param string $uri
+     * @param array $body
+     * @param array $query
+     * @return array
+     *
+     * @throws RequestException
+     * @throws ResponseException
+     */
+    public function put(string $uri, array $body = [], array $query = []): array
+    {
+        return $this->request('PUT', $this->withQueryValues($uri, $query), $body);
+    }
+
+    /**
+     * @param string $uri
+     * @param array $body
+     * @param array $query
+     * @return array
+     *
+     * @throws RequestException
+     * @throws ResponseException
+     */
+    public function patch(string $uri, array $body = [], array $query = []): array
+    {
+        return $this->request('PATCH', $this->withQueryValues($uri, $query), $body);
+    }
+
+    /**
+     * @param string $uri
+     * @param array $query
+     * @return array
+     *
+     * @throws RequestException
+     * @throws ResponseException
+     */
+    public function delete(string $uri, array $query = []): array
+    {
+        return $this->request('DELETE', $this->withQueryValues($uri, $query));
+    }
+
+    /**
+     * @param string $method
+     * @param string $uri
+     * @param array|null $body
+     * @return array
+     *
+     * @throws RequestException
+     * @throws ResponseException
+     */
+    public function request(string $method, string $uri, array $body = null): array
+    {
+        $method = strtoupper($method);
+
+        try {
+            $response = $this->client->get(
+                $uri,
+                $body !== null ? ['json' => (object) $body] : [],
+            );
+        } catch (GuzzleException $exception) {
+            throw new RequestException("Failed requesting {$method} on `{$uri}`.", 0, $exception);
+        }
+
+        try {
+            return Utils::jsonDecode($response->getBody()->getContents(), true);
+        } catch (InvalidArgumentException $exception) {
+            throw new ResponseException("Failed decoding response JSON: {$exception->getMessage()}", 0, $exception);
+        }
     }
 
     public function watch(string $endpoint, callable $watcher, callable $initialize = null): void
@@ -55,7 +146,7 @@ final class KubernetesClient
 
     private function doWatch(UriInterface $endpoint, callable $watcher, callable $initializer = null): void
     {
-        $resourceVersion = $initializer ? $this->initialize($endpoint, $initializer) : null;
+        $resourceVersion = $initializer ? $this->initializeWatch($endpoint, $initializer) : null;
 
         $this->logger->info('Starting watcher');
 
@@ -78,9 +169,9 @@ final class KubernetesClient
         }
     }
 
-    private function initialize(UriInterface $endpoint, callable $initializer): string
+    private function initializeWatch(UriInterface $endpoint, callable $initializer): string
     {
-        $this->logger->info('Initializing base resourceVersion');
+        $this->logger->info('Initializing watch base resourceVersion');
 
         $response = $this->client->get($endpoint);
 
@@ -112,5 +203,14 @@ final class KubernetesClient
                 }
             }
         }
+    }
+
+    private function withQueryValues(string $uri, array $query): string
+    {
+        if (empty($query)) {
+            return $uri;
+        }
+
+        return (string) Uri::withQueryValues(new Uri($uri), $query);
     }
 }
