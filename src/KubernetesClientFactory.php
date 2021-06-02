@@ -83,7 +83,7 @@ final class KubernetesClientFactory
         ]);
     }
 
-    public function constructKubernetesClient(): KubernetesClient
+    public function constructClient(): KubernetesClient
     {
         return new KubernetesClient(
             new HttpClient($this->config),
