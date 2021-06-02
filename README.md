@@ -1,2 +1,3 @@
-# minimalist-kubernetes-client
+# Prezly's Kubernetes Client
+
 Minimalistic Kubernetes API client implementation
