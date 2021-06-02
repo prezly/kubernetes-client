@@ -20,9 +20,17 @@
         "guzzlehttp/guzzle": "^7.3",
         "psr/log": "^1.0"
     },
+    "require-dev": {
+        "peridot-php/peridot": "^1.19"
+    },
     "autoload": {
         "psr-4": {
             "Prezly\\KubernetesClient\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Prezly\\KubernetesClient\\Tests\\": "testsrc"
         }
     }
 }

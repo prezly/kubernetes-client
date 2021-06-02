@@ -11,7 +11,7 @@ final class KubernetesClientFactory
     private array $config;
     private ?LoggerInterface $logger = null;
 
-    public function __construct(array $config, LoggerInterface $logger = null)
+    public function __construct(array $config = [], LoggerInterface $logger = null)
     {
         $this->config = $config;
         $this->logger = $logger;
