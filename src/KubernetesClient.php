@@ -9,6 +9,7 @@ use GuzzleHttp\Utils;
 use Psr\Http\Message\StreamInterface;
 use Psr\Http\Message\UriInterface;
 use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 
 final class KubernetesClient
 {
@@ -16,26 +17,10 @@ final class KubernetesClient
 
     private LoggerInterface $logger;
 
-    public function __construct(
-        LoggerInterface $logger,
-        string $base,
-        string $token,
-        string $authority
-    ) {
-        $this->logger = $logger;
-
-        if (substr($token, 0, 5) === 'data:' || substr($token, 0, 5) === 'file:') {
-            $token = file_get_contents($token);
-        }
-
-        $this->client = new HttpClient([
-            'base_uri'     => $base,
-            'verify'       => $authority,
-            'headers'      => [
-                'Authorization' => "Bearer {$token}",
-            ],
-            'read_timeout' => PHP_INT_MAX,
-        ]);
+    public function __construct(HttpClient $client, LoggerInterface $logger = null)
+    {
+        $this->client = $client;
+        $this->logger = $logger ?: new NullLogger();
     }
 
     public function get(string $uri, array $params = []): array
@@ -82,7 +67,10 @@ final class KubernetesClient
                  */
                 'resourceVersion' => $resourceVersion,
             ])),
-            ['stream' => true],
+            [
+                'stream'       => true,
+                'read_timeout' => PHP_INT_MAX,
+            ],
         );
 
         foreach ($this->decodeNDJsonStream($response->getBody()) as $record) {
