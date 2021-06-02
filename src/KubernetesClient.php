@@ -2,7 +2,7 @@
 
 namespace Prezly\KubernetesClient;
 
-use GuzzleHttp\Client as HttpClient;
+use GuzzleHttp\ClientInterface as HttpClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Psr7\Uri;
 use GuzzleHttp\Utils;
@@ -16,11 +16,11 @@ use Psr\Log\NullLogger;
 
 final class KubernetesClient
 {
-    private HttpClient $client;
+    private HttpClientInterface $client;
 
     private LoggerInterface $logger;
 
-    public function __construct(HttpClient $client, LoggerInterface $logger = null)
+    public function __construct(HttpClientInterface $client, LoggerInterface $logger = null)
     {
         $this->client = $client;
         $this->logger = $logger ?: new NullLogger();
@@ -168,7 +168,7 @@ final class KubernetesClient
         ]));
 
         try {
-            $response = $this->client->get($uri, [
+            $response = $this->client->request('GET', $uri, [
                 'stream'       => true,
                 'read_timeout' => PHP_INT_MAX,
             ]);
