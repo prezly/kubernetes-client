@@ -223,6 +223,11 @@ final class KubernetesClient
         }
     }
 
+    /**
+     * @param string $uri
+     * @param array<string,string> $query
+     * @return string
+     */
     private function withQueryValues(string $uri, array $query): string
     {
         if (empty($query)) {
