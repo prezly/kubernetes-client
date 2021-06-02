@@ -14,12 +14,11 @@
         "sort-packages": true
     },
     "require": {
-        "php": "*",
+        "php": ">=7.4",
         "ext-curl": "*",
-        "ext-json": "*"
-    },
-    "require-dev": {
-
+        "ext-json": "*",
+        "guzzlehttp/guzzle": "^7.3",
+        "psr/log": "^1.0"
     },
     "autoload": {
         "psr-4": {
