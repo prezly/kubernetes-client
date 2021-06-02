@@ -7,100 +7,86 @@ use Psr\Log\LoggerInterface;
 
 final class KubernetesClientFactory
 {
-    private string $apiUri;
-    private ?string $certificateAuthorityPath = null;
-    private ?string $clientCertificate;
-    private ?string $clientCertificatePassword;
-    private ?string $privateKey;
-    private ?string $privateKeyPassword = null;
-    private ?string $accessToken = null;
+    private array $config;
     private ?LoggerInterface $logger = null;
 
-    public function __construct(string $apiUri)
+    public function __construct(array $config, LoggerInterface $logger = null)
     {
-        $this->apiUri = $apiUri;
+        $this->config = $config;
+        $this->logger = $logger;
     }
 
     public static function connectTo(string $apiUri): self
     {
-        return new self($apiUri);
-    }
-
-    public function withCertificateAuthority(string $certificateAuthorityPath): self
-    {
-        $that = clone $this;
-        $that->certificateAuthorityPath = $certificateAuthorityPath;
-
-        return $that;
-    }
-
-    public function withClientCertificate(string $clientCertificate, ?string $password = null): self
-    {
-        $that = clone $this;
-        $that->clientCertificate = $clientCertificate;
-        $this->clientCertificatePassword = $password;
-
-        return $that;
-    }
-
-    public function withPrivateSslKey(string $privateKey, ?string $password = null): self
-    {
-        $that = clone $this;
-        $that->privateKey = $privateKey;
-        $that->privateKeyPassword = $password;
-
-        return $that;
-    }
-
-    public function withAccessToken(string $accessToken): self
-    {
-        $that = clone $this;
-        $that->accessToken = $accessToken;
-
-        return $that;
+        return new self([
+            'base_uri' => $apiUri,
+        ]);
     }
 
     public function withLogger(LoggerInterface $logger): self
     {
-        $that = clone $this;
-        $that->logger = $logger;
-
-        return $that;
+        return new self($this->config, $logger);
     }
 
-    public function constructHttpClient(): HttpClient
+    public function withConfig(array $config): self
     {
-        $config = [
-            'base_uri' => $this->apiUri,
-        ];
+        return new self(
+            array_merge($this->config, $config),
+            $this->logger,
+        );
+    }
 
-        if ($this->certificateAuthorityPath) {
-            $config['verify'] = $this->certificateAuthorityPath;
-        }
+    public function withHeaders(array $headers): self
+    {
+        $headers = array_merge(
+            $this->config['headers'] ?? [],
+            $headers,
+        );
 
-        if ($this->clientCertificate) {
-            $config['cert'] = $this->clientCertificatePassword
-                ? [$this->clientCertificate, $this->clientCertificatePassword]
-                : $this->clientCertificate;
-        }
+        return $this->withConfig([
+            'headers' => $headers,
+        ]);
+    }
 
-        if ($this->privateKey) {
-            $config['ssl_key'] = $this->privateKeyPassword
-                ? [$this->privateKey, $this->privateKeyPassword]
-                : $this->privateKey;
-        }
+    public function withoutCertificateAuthorityVerification(): self
+    {
+        return $this->withConfig([
+            'verify' => false,
+        ]);
+    }
 
-        if ($this->accessToken) {
-            $config['headers'] = ['Authorization' => "Bearer {$this->accessToken}"];
-        }
+    public function withCertificateAuthority(string $certificateAuthorityPath): self
+    {
+        return $this->withConfig([
+            'verify' => $certificateAuthorityPath,
+        ]);
+    }
 
-        return new HttpClient($config);
+    public function withClientCertificate(string $clientCertificate, ?string $password = null): self
+    {
+        return $this->withConfig([
+            'cert' => $password ? [$clientCertificate, $password] : $clientCertificate,
+        ]);
+    }
+
+    public function withPrivateSslKey(string $privateKey, ?string $password = null): self
+    {
+        return $this->withConfig([
+            'ssl_key' => $password ? [$privateKey, $password] : $privateKey,
+        ]);
+    }
+
+    public function withAccessToken(string $accessToken): self
+    {
+        return $this->withHeaders([
+            'Authorization' => "Bearer {$accessToken}",
+        ]);
     }
 
     public function constructKubernetesClient(): KubernetesClient
     {
         return new KubernetesClient(
-            $this->constructHttpClient(),
+            new HttpClient($this->config),
             $this->logger,
         );
     }
