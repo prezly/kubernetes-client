@@ -128,6 +128,9 @@ $client->watch('/apis/networking.k8s.io/v1/namespaces/default/ingresses', functi
 });
 ```
 
+
+### Initializing state before starting watcher
+
 You can also provide an *initializer* to initialize state before *watch* starts:
 
 ```php
@@ -147,6 +150,9 @@ $client->watch(
 );
 ```
 
+
+### Stopping daemon
+
 By default, the watcher will run indefinitely, but you can return `false` from your *watch* callback to force it exit.
 
 ```php
@@ -156,11 +162,6 @@ $client->watch('/apis/networking.k8s.io/v1/namespaces/default/ingresses', functi
         return false; // force exit
     }
 });
-```
-
-```php
-/** @var \Prezly\KubernetesClient\KubernetesClient $client */
-$ingresses = $client->get('/apis/networking.k8s.io/v1/namespaces/default/ingresses');
 ```
 
 
