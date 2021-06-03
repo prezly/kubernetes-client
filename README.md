@@ -166,7 +166,7 @@ $ingresses = $client->get('/apis/networking.k8s.io/v1/namespaces/default/ingress
 
 ## Credits
 
-Brought to you with :love: by [Prezly][prezly]
+Brought to you with :heart: by [Prezly][prezly]
 
 
 [prezly]: https://www.prezly.com/?utm_source=github&utm_campaign=prezly/kubernetes-client
