@@ -5,8 +5,6 @@ namespace Prezly\KubernetesClient;
 use GuzzleHttp\ClientInterface as HttpClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Psr7\Uri;
-use GuzzleHttp\Utils;
-use InvalidArgumentException;
 use Prezly\KubernetesClient\Exceptions\KubernetesClientException;
 use Prezly\KubernetesClient\Exceptions\RequestException;
 use Prezly\KubernetesClient\Exceptions\ResponseException;
@@ -253,10 +251,14 @@ final class KubernetesClient
      */
     private function decodeResponseJson(string $contents)
     {
-        try {
-            return Utils::jsonDecode($contents, true);
-        } catch (InvalidArgumentException $exception) {
-            throw new ResponseException("Failed decoding response JSON: {$exception->getMessage()}", 0, $exception);
+        $decoded = json_decode($contents, true);
+
+        if ($decoded === null && json_last_error() !== JSON_ERROR_NONE) {
+            throw new ResponseException(
+                sprintf("Failed decoding response JSON: %s (%s)", json_last_error_msg(), json_last_error()),
+            );
         }
+
+        return $decoded;
     }
 }
