@@ -3,12 +3,12 @@
 Prezly's Kubernetes Client is a minimalistic Kubernetes API client implementation in PHP 
 which allows you to list, fetch, update, delete and **watch** resources in your Kubernetes cluster.
 
-![Tests Status][badge]
+![Tests Status][https://github.com/prezly/kubernetes-client/actions/workflows/test.yml/badge.svg]
 
 
 ## Features
 
-- Kubernetes Watch API support
+- [Kubernetes Watch API](https://kubernetes.io/docs/reference/using-api/api-concepts/#efficient-detection-of-changes) support
 - Unlimited authentication functionality
 - No knowledge about any specific Kubernetes resources: it supports every resource or collection you have
 - PHP 7.4+
@@ -19,7 +19,7 @@ which allows you to list, fetch, update, delete and **watch** resources in your 
 
 ## Installation
 
-Use [Composer][composer] package manager to add *Prezly's Kubernetes Client* to your project:
+Use [Composer][https://getcomposer.org/] package manager to add *Prezly's Kubernetes Client* to your project:
 
 ```
 composer require prezly/kubernetes-client
@@ -166,9 +166,5 @@ $ingresses = $client->get('/apis/networking.k8s.io/v1/namespaces/default/ingress
 
 ## Credits
 
-Brought to you with :heart: by [Prezly][prezly]
+Brought to you with :heart: by [Prezly][https://www.prezly.com/?utm_source=github&utm_campaign=prezly/kubernetes-client]
 
-
-[prezly]: https://www.prezly.com/?utm_source=github&utm_campaign=prezly/kubernetes-client
-[composer]: https://getcomposer.org/
-[badge]: https://github.com/prezly/kubernetes-client/actions/workflows/test.yml/badge.svg
