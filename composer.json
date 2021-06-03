@@ -21,6 +21,7 @@
         "psr/log": "^1.0"
     },
     "require-dev": {
+        "mockery/mockery": "^1.4",
         "peridot-php/peridot": "^1.19"
     },
     "autoload": {

@@ -130,8 +130,9 @@ final class KubernetesClient
         $uri = new Uri($uri);
 
         do {
+            $continue = null;
             try {
-                $this->doWatch($uri, $watcher, $initialize);
+                $continue = $this->doWatch($uri, $watcher, $initialize);
             } catch (KubernetesClientException $exception) {
                 $this->logger->warning("Caught exception: {$exception->getMessage()}", [
                     'exception' => [
@@ -143,17 +144,18 @@ final class KubernetesClient
                 $this->logger->notice('Retrying in 5s');
                 sleep(5);
             }
-        } while (true);
+        } while ($continue !== false);
     }
 
     /**
      * @param string $uri
      * @param callable $watcher
      * @param callable|null $initializer
+     * @return bool
      * @throws RequestException
      * @throws ResponseException
      */
-    private function doWatch(string $uri, callable $watcher, callable $initializer = null): void
+    private function doWatch(string $uri, callable $watcher, callable $initializer = null): bool
     {
         $resourceVersion = $initializer ? $this->initializeWatch($uri, $initializer) : null;
 
@@ -177,8 +179,15 @@ final class KubernetesClient
         }
 
         foreach ($this->decodeJsonStream($response->getBody()) as $record) {
-            $watcher($record);
+            $continue = $watcher($record);
+
+            if ($continue === false) {
+                $this->logger->notice('Watcher callback returned `false`. Exiting.');
+                return false;
+            }
         }
+
+        return true;
     }
 
     /**
@@ -190,7 +199,7 @@ final class KubernetesClient
      */
     private function initializeWatch(string $uri, callable $initializer): string
     {
-        $this->logger->info("Initializing watch base resourceVersion for `{$uri}.");
+        $this->logger->info("Initializing watch base resourceVersion for `{$uri}`.");
 
         $response = $this->get($uri);
 
@@ -213,7 +222,7 @@ final class KubernetesClient
             $buffer .= $byte;
 
             if ($byte === "\n") {
-                yield from $this->decodeResponseJson($buffer);
+                yield $this->decodeResponseJson($buffer);
                 $buffer = '';
             }
         }
