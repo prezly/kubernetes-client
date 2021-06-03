@@ -8,8 +8,9 @@ which allows you to list, fetch, update, delete and **watch** resources in your 
 
 ## Features
 
-- Rich authentication factory 
-- No knowledge about any specific Kubernetes resources: it supports every resource or collection you have.
+- Kubernetes Watch API support
+- Unlimited authentication functionality
+- No knowledge about any specific Kubernetes resources: it supports every resource or collection you have
 - PHP 7.4+
 - PHP 8.0
 - Semver
