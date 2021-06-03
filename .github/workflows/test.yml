@@ -6,7 +6,12 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        php: ['7.4', '8.0']
+        php:    ['7.4', '8.0']
+        guzzle:
+          - 'guzzlehttp/guzzle:6.0'
+          - 'guzzlehttp/guzzle:^6.0'
+          - 'guzzlehttp/guzzle:7.0'
+          - 'guzzlehttp/guzzle:^7.0'
 
     steps:
       - uses: actions/checkout@master
@@ -19,6 +24,9 @@ jobs:
 
       - name: Install Dependencies
         run: composer install
+
+      - name: Install Guzzle ${{ matrix.guzzle }}
+        run: composer require ${{ matrix.guzzle }} --ignore-platform-reqs
 
       - name: Test
         run: make test
