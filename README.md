@@ -19,7 +19,7 @@ which allows you to list, fetch, update, delete and **watch** resources in your 
 
 ## Installation
 
-Use [Composer][2] package manager to add *Prezly's Kubernetes Client* to your project:
+Use [Composer][composer] package manager to add *Prezly's Kubernetes Client* to your project:
 
 ```
 composer require prezly/kubernetes-client
@@ -170,4 +170,5 @@ Brought to you with :love: by [Prezly][prezly]
 
 
 [prezly]: https://www.prezly.com/?utm_source=github&utm_campaign=prezly/kubernetes-client
+[composer]: https://getcomposer.org/
 [badge]: https://github.com/prezly/kubernetes-client/actions/workflows/test.yml/badge.svg
