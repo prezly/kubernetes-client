@@ -2,6 +2,7 @@
 
 use GuzzleHttp\Client as HttpClient;
 use GuzzleHttp\ClientInterface as HttpClientInterface;
+use GuzzleHttp\Psr7\PumpStream;
 use GuzzleHttp\Psr7\Response;
 use Prezly\KubernetesClient\KubernetesClient;
 use Prezly\KubernetesClient\Tests\Utils\StderrLogger;
@@ -105,15 +106,31 @@ describe('KubernetesClient', function () {
             pcntl_alarm(5);
         }
 
+        $stream = [
+            time()     => '{"type":"ADDED","object":{"kind":"Service","...":"..."}}' . "\n",
+            time() + 1 => '{"type":"MODIFIED","object":{"kind":"Service","...":"..."}}' . "\n",
+            time() + 2 => '{"type":"DELETED","object":{"kind":"Service","...":"..."}}' . "\n",
+        ];
+
         $http = Mockery::mock(HttpClientInterface::class);
         $http->allows()
             ->request('GET', '/api/v1/namespaces/default/services?watch=1', ['stream' => true, 'read_timeout' => PHP_INT_MAX])
             ->andReturns(
-                new Response(200, [], <<<JSON
-                    {"type":"ADDED","object":{"kind":"Service","...":"..."}}
-                    {"type":"MODIFIED","object":{"kind":"Service","...":"..."}}
-                    {"type":"DELETED","object":{"kind":"Service","...":"..."}}
-                    JSON)
+                new Response(200, [], new PumpStream(function () use (& $stream) {
+                    if (empty($stream)) {
+                        return null; // EOF
+                    }
+
+                    foreach (array_keys($stream) as $time) {
+                        if ($time < time()) {
+                            $portion = $stream[$time];
+                            unset($stream[$time]);
+                            return $portion;
+                        }
+                    }
+
+                    return '';
+                }))
             );
 
         $client = new KubernetesClient($http, new StderrLogger());
@@ -124,13 +141,14 @@ describe('KubernetesClient', function () {
             function (array $event) use (& $events) {
                 $events[] = $event;
 
-                return count($events) < 2; // continue util we have 2 events
+                return count($events) < 3; // continue util we have 3 events
             },
         );
 
         assert($events === [
             ['type' => 'ADDED', 'object' => ['kind' => 'Service', '...' => '...']],
             ['type' => 'MODIFIED', 'object' => ['kind' => 'Service', '...' => '...']],
+            ['type' => 'DELETED', 'object' => ['kind' => 'Service', '...' => '...']],
         ]);
     });
 
