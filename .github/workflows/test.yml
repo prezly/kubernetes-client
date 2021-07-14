@@ -26,7 +26,7 @@ jobs:
         run: composer install --ignore-platform-reqs
 
       - name: Install Guzzle (${{ matrix.guzzle }})
-        run: composer require guzzlehttp/${{ matrix.guzzle }} --ignore-platform-reqs
+        run: composer require guzzlehttp/${{ matrix.guzzle }} --ignore-platform-reqs --with-all-dependencies
 
       - name: Test
         run: make test
