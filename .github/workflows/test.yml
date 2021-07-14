@@ -8,10 +8,10 @@ jobs:
       matrix:
         php:    ['7.4', '8.0']
         guzzle:
-          - 'guzzlehttp/guzzle:6.0'
-          - 'guzzlehttp/guzzle:^6.0'
-          - 'guzzlehttp/guzzle:7.0'
-          - 'guzzlehttp/guzzle:^7.0'
+          - 'guzzle:6.0'
+          - 'guzzle:^6.0'
+          - 'guzzle:7.0'
+          - 'guzzle:^7.0'
 
     steps:
       - uses: actions/checkout@master
@@ -25,8 +25,8 @@ jobs:
       - name: Install Dependencies
         run: composer install --ignore-platform-reqs
 
-      - name: Install Guzzle ${{ matrix.guzzle }}
-        run: composer require ${{ matrix.guzzle }} --ignore-platform-reqs
+      - name: Install Guzzle (${{ matrix.guzzle }})
+        run: composer require guzzlehttp/${{ matrix.guzzle }} --ignore-platform-reqs
 
       - name: Test
         run: make test
