@@ -23,7 +23,7 @@ jobs:
           coverage: none
 
       - name: Install Dependencies
-        run: composer install
+        run: composer install --ignore-platform-reqs
 
       - name: Install Guzzle ${{ matrix.guzzle }}
         run: composer require ${{ matrix.guzzle }} --ignore-platform-reqs
