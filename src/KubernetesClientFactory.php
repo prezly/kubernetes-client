@@ -9,12 +9,17 @@ use Psr\Log\LoggerInterface;
 final class KubernetesClientFactory
 {
     private array $config;
-    private ?LoggerInterface $logger = null;
+    private ?LoggerInterface $logger;
 
     public function __construct(array $config = [], LoggerInterface $logger = null)
     {
         $this->config = $config;
         $this->logger = $logger;
+    }
+
+    public static function create(): self
+    {
+        return new self();
     }
 
     public static function connectTo(string $apiUri): self
@@ -46,6 +51,13 @@ final class KubernetesClientFactory
 
         return $this->withConfig([
             'headers' => $headers,
+        ]);
+    }
+
+    public function withApiUri(string $apiUri): self
+    {
+        return $this->withConfig([
+            'base_uri' => $apiUri,
         ]);
     }
 
