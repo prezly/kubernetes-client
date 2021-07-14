@@ -122,7 +122,7 @@ describe('KubernetesClient', function () {
                     }
 
                     foreach (array_keys($stream) as $time) {
-                        if ($time < time()) {
+                        if ($time <= time()) {
                             $portion = $stream[$time];
                             unset($stream[$time]);
                             return $portion;
