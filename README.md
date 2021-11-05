@@ -167,5 +167,5 @@ $client->watch('/apis/networking.k8s.io/v1/namespaces/default/ingresses', functi
 
 ## Credits
 
-Brought to you with :heart: by [Prezly](https://www.prezly.com/?utm_source=github&utm_campaign=prezly/kubernetes-client)
+Brought to you with :heart: by [Prezly](https://www.prezly.com/?utm_source=github&utm_campaign=prezly/kubernetes-client) &mdash; PR software for better, faster communication.
 
